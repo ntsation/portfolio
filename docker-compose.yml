@@ -1,0 +1,12 @@
+services:
+  web:
+    build:
+      context: .
+      args:
+        # Optional: export GITHUB_TOKEN before building to avoid API rate
+        # limits during the data fetch step.
+        GITHUB_TOKEN: ${GITHUB_TOKEN:-}
+    image: ntsation-site
+    ports:
+      - "8080:80"
+    restart: unless-stopped
