@@ -1,4 +1,17 @@
 {
   "username": "ntsation",
-  "exclude": []
+  "exclude": [
+    "barber-crm",
+    "bndes-data-pipeline",
+    "serverless-chatbot-aws",
+    "sales-prediction-project",
+    "personal-data-pseudonymizer",
+    "model-multilingual-translator",
+    "gemini-chatbot-app",
+    "consumer-purchase-analysis",
+    "mlops-iris-classifier",
+    "tweet-sentiment-analysis",
+    "iris-analysis-ml",
+    "iris-classification-bentoml"
+  ]
 }

@@ -56,7 +56,7 @@ export default function RepoCard({ repo }: { repo: RepoData }) {
               <span className="diff-add">+{adds}</span> <span className="diff-del">−{dels}</span>
             </span>
           )}
-          <span className="card-stars">★ {formatStars(repo.stars)}</span>
+          {repo.stars > 0 && <span className="card-stars">★ {formatStars(repo.stars)}</span>}
         </div>
       </div>
       {repo.thumbnail && (

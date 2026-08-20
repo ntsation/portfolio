@@ -1,4 +1,3 @@
-import { createHash } from 'node:crypto'
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -8,8 +7,24 @@ const config = JSON.parse(readFileSync(resolve(root, 'repos.config.json'), 'utf8
 const outDir = resolve(root, 'src/data')
 const ptPath = resolve(outDir, 'repos.pt.json')
 const enPath = resolve(outDir, 'repos.en.json')
-const cachePath = resolve(outDir, 'i18n-cache.json')
 const MAX_PR_DETAILS = 12
+
+// Content is translated by hand in each repo, never by an LLM. For each
+// language we try these filenames in order and use the first one that
+// exists; if none of the localized files exist we fall back to whatever
+// the repo's default README is (same content shown for both languages).
+const ARTICLE_CANDIDATES = {
+  pt: ['ARTIGO.pt-br.md', 'ARTIGO.md', 'artigo.pt-br.md', 'artigo.md', 'README.pt-br.md', 'readme.pt-br.md'],
+  en: [
+    'ARTIGO.en-us.md',
+    'ARTICLE.md',
+    'ARTICLE.en-us.md',
+    'artigo.en-us.md',
+    'article.md',
+    'README.en-us.md',
+    'readme.en-us.md',
+  ],
+}
 
 if (process.argv.includes('--if-missing') && existsSync(ptPath)) {
   console.log('src/data/repos.pt.json already exists, skipping fetch (rm it to refresh)')
@@ -121,70 +136,31 @@ function parseArticleMeta(md) {
   return { title, description }
 }
 
-const GEMINI_KEY = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || null
-const OPENAI_KEY = process.env.OPENAI_API_KEY || null
-
-let cache = {}
-if (existsSync(cachePath)) {
-  try {
-    cache = JSON.parse(readFileSync(cachePath, 'utf8'))
-  } catch {
-    cache = {}
+// The article's own H1 + subtitle (and, if present, a manual pt/en switcher
+// link) are already surfaced by the page as title/description and the
+// site's own language toggle — strip them from the body so they don't
+// repeat inside the rendered content.
+function stripArticleHeader(md) {
+  const lines = md.split('\n')
+  let i = 0
+  const skipBlank = () => {
+    while (i < lines.length && lines[i].trim() === '') i++
   }
-}
-
-function sha(text) {
-  return createHash('sha256').update(text).digest('hex')
-}
-
-function writeCache() {
-  mkdirSync(outDir, { recursive: true })
-  writeFileSync(cachePath, `${JSON.stringify(cache, null, 2)}\n`)
-}
-
-async function geminiTranslate(prompt) {
-  const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_KEY}`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }),
-    },
-  )
-  if (!res.ok) throw new Error(`gemini ${res.status}: ${(await res.text()).slice(0, 200)}`)
-  const j = await res.json()
-  const text = j.candidates?.[0]?.content?.parts?.map((p) => p.text).join('')
-  if (!text) throw new Error('gemini: empty response')
-  return text.trim()
-}
-
-async function openaiTranslate(prompt) {
-  const res = await fetch('https://api.openai.com/v1/chat/completions', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${OPENAI_KEY}` },
-    body: JSON.stringify({
-      model: 'gpt-4o-mini',
-      messages: [{ role: 'user', content: prompt }],
-    }),
-  })
-  if (!res.ok) throw new Error(`openai ${res.status}: ${(await res.text()).slice(0, 200)}`)
-  const j = await res.json()
-  const text = j.choices?.[0]?.message?.content
-  if (!text) throw new Error('openai: empty response')
-  return text.trim()
-}
-
-const llm = GEMINI_KEY ? geminiTranslate : OPENAI_KEY ? openaiTranslate : null
-
-async function tr(text) {
-  if (!text) return text
-  const key = sha(text)
-  if (cache[key]) return cache[key]
-  const prompt = `Translate the following text from Brazilian Portuguese to English. It may be GitHub-flavored Markdown: preserve the Markdown syntax exactly (headings, lists, tables, links, images, HTML tags); do NOT translate code inside code blocks and keep all URLs unchanged. Output ONLY the translation, with no commentary.\n\n${text}`
-  const out = await llm(prompt)
-  cache[key] = out
-  writeCache()
-  return out
+  skipBlank()
+  if (i < lines.length && !/^#/.test(lines[i]) && /(🇧🇷|🇺🇸)/.test(lines[i])) {
+    i++
+    skipBlank()
+  }
+  if (i < lines.length && /^#\s+/.test(lines[i])) {
+    i++
+    skipBlank()
+    const t = lines[i]?.trim()
+    if (t && !t.startsWith('#') && !t.startsWith('!') && !t.startsWith('<') && !t.startsWith('---')) {
+      i++
+    }
+  }
+  skipBlank()
+  return lines.slice(i).join('\n')
 }
 
 let user
@@ -294,33 +270,37 @@ async function fetchOpenSource(meta) {
   }
 }
 
-async function fetchArticle(owner, repo) {
-  for (const file of ['artigo.md', 'ARTIGO.md']) {
+async function fetchArticle(owner, repo, lang) {
+  for (const file of ARTICLE_CANDIDATES[lang]) {
     try {
       const md = await ghRaw(`/repos/${owner}/${repo}/contents/${file}`)
-      console.log(`  using ${file}`)
+      console.log(`  [${lang}] using ${file}`)
       return { md, source: 'artigo' }
     } catch (err) {
       if (!/-> 404$/.test(err.message)) throw err
     }
   }
-  return { md: await ghRaw(`/repos/${owner}/${repo}/readme`), source: 'readme' }
+  const md = await ghRaw(`/repos/${owner}/${repo}/readme`)
+  console.log(`  [${lang}] no localized file, using default README`)
+  return { md, source: 'readme' }
 }
 
-async function fetchProject(meta) {
-  const { md, source } = await fetchArticle(config.username, meta.name)
+async function fetchProject(meta, lang) {
+  const { md, source } = await fetchArticle(config.username, meta.name, lang)
   const branch = meta.default_branch || 'main'
-  const content = rewriteImages(md, config.username, meta.name, branch)
-  const text = mdToText(content)
+  const rawContent = rewriteImages(md, config.username, meta.name, branch)
+  const text = mdToText(rawContent)
   const words = text.split(/\s+/).filter(Boolean).length
-  const images = collectImages(content).filter((u) => !isBadge(u))
+  const images = collectImages(rawContent).filter((u) => !isBadge(u))
 
   let title = prettify(meta.name)
   let description = meta.description || null
+  let content = rawContent
   if (source === 'artigo') {
-    const parsed = parseArticleMeta(content)
+    const parsed = parseArticleMeta(rawContent)
     title = parsed.title || title
     description = parsed.description || description
+    content = stripArticleHeader(rawContent)
   }
 
   return {
@@ -357,7 +337,8 @@ async function listRepos() {
   return all
 }
 
-const repos = []
+const ptRepos = []
+const enRepos = []
 const exclude = new Set(config.exclude ?? [])
 
 let allRepos
@@ -386,12 +367,20 @@ for (const meta of allRepos) {
         console.warn(`${meta.name}: fork without PRs, skipping`)
         continue
       }
-      repos.push(entry)
+      // PR content lives in someone else's repo, so there's no localized
+      // file to pick per language; show it as written for both locales.
+      ptRepos.push(entry)
+      enRepos.push(entry)
       console.log(
         `fetched ${meta.name}: ${entry.prs.length} PR(s) into ${entry.upstream.fullName}`,
       )
     } else {
-      repos.push(await fetchProject(meta))
+      const [ptEntry, enEntry] = await Promise.all([
+        fetchProject(meta, 'pt'),
+        fetchProject(meta, 'en'),
+      ])
+      ptRepos.push(ptEntry)
+      enRepos.push(enEntry)
       console.log(`fetched ${meta.name}`)
     }
   } catch (err) {
@@ -399,49 +388,12 @@ for (const meta of allRepos) {
   }
 }
 
-repos.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
+ptRepos.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
+enRepos.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
 
 mkdirSync(outDir, { recursive: true })
 rmSync(resolve(outDir, 'repos.json'), { force: true })
 
-const ptData = { user, repos }
-writeFileSync(ptPath, `${JSON.stringify(ptData, null, 2)}\n`)
-
-let enData = ptData
-if (llm) {
-  console.log('translating content to en-US...')
-  const enRepos = []
-  for (const r of repos) {
-    try {
-      if (r.kind === 'opensource') {
-        enRepos.push({
-          ...r,
-          title: await tr(r.title),
-          description: r.description ? await tr(r.description) : null,
-          excerpt: await tr(r.excerpt),
-          prs: await Promise.all(
-            r.prs.map(async (p) => ({ ...p, title: await tr(p.title), body: await tr(p.body) })),
-          ),
-        })
-      } else {
-        enRepos.push({
-          ...r,
-          title: await tr(r.title),
-          description: r.description ? await tr(r.description) : null,
-          excerpt: await tr(r.excerpt),
-          content: await tr(r.content),
-        })
-      }
-      console.log(`  translated ${r.name}`)
-    } catch (err) {
-      console.warn(`  translation failed for ${r.name}: ${err.message}; keeping pt content`)
-      enRepos.push(r)
-    }
-  }
-  enData = { user, repos: enRepos }
-} else {
-  console.warn('no GEMINI_API_KEY or OPENAI_API_KEY set: en-US will reuse pt-BR content')
-}
-
-writeFileSync(enPath, `${JSON.stringify(enData, null, 2)}\n`)
-console.log(`wrote ${repos.length} repos (pt-BR + en-US)`)
+writeFileSync(ptPath, `${JSON.stringify({ user, repos: ptRepos }, null, 2)}\n`)
+writeFileSync(enPath, `${JSON.stringify({ user, repos: enRepos }, null, 2)}\n`)
+console.log(`wrote ${ptRepos.length} repos (pt-BR + en-US, each fetched from its own localized file)`)

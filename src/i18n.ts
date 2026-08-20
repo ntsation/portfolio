@@ -6,7 +6,7 @@ export const strings = {
   pt: {
     nav: { bio: 'Biografia', projects: 'Projetos', opensource: 'Open Source' },
     sidebar: {
-      tagline: 'Readmes dos meus projetos e das minhas contribuições open source, contados como histórias.',
+      tagline: 'Todo README esconde uma história. Aqui, eu conto as minhas.',
       projects: 'projetos',
       contributions: 'contribuições open source',
     },
@@ -38,7 +38,7 @@ export const strings = {
   en: {
     nav: { bio: 'Biography', projects: 'Projects', opensource: 'Open Source' },
     sidebar: {
-      tagline: 'Readmes from my projects and open source contributions, told as stories.',
+      tagline: 'Every README hides a story. Here, I tell mine.',
       projects: 'projects',
       contributions: 'open source contributions',
     },
