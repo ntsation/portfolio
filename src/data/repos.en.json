@@ -1,0 +1,84 @@
+{
+  "user": {
+    "login": "ntsation",
+    "name": "Nathan Souza",
+    "bio": "Data/ML Engineer‎",
+    "avatarUrl": "https://avatars.githubusercontent.com/u/112490788?v=4",
+    "profileUrl": "https://github.com/ntsation"
+  },
+  "repos": [
+    {
+      "kind": "opensource",
+      "name": "dagster",
+      "title": "Dagster",
+      "description": "An orchestration platform for the development, production, and observation of data assets.",
+      "excerpt": "Summary & Motivation Fixes 33974. The sensor dry run dialog's \"Commit tick result\" only applied a SensorResult 's cursor , dynamic partitions requests , and run requests — asset events (materializations, observations, as…",
+      "content": "",
+      "url": "https://github.com/dagster-io/dagster",
+      "homepage": "https://dagster.io",
+      "language": "Python",
+      "topics": [
+        "analytics",
+        "dagster",
+        "data-engineering",
+        "data-integration",
+        "data-orchestrator",
+        "data-pipelines",
+        "data-science",
+        "etl",
+        "metadata",
+        "mlops",
+        "orchestration",
+        "python",
+        "scheduler",
+        "workflow",
+        "workflow-automation"
+      ],
+      "stars": 16032,
+      "updatedAt": "2026-08-14T20:26:19Z",
+      "readingTime": 2,
+      "thumbnail": null,
+      "prs": [
+        {
+          "number": 34127,
+          "title": "[dagster-ui] Report sensor tick asset events when committing a dry ru…",
+          "url": "https://github.com/dagster-io/dagster/pull/34127",
+          "state": "open",
+          "mergedAt": null,
+          "updatedAt": "2026-08-14T20:26:19Z",
+          "body": "## Summary & Motivation\r\n\r\n  Fixes #33974.\r\n\r\n  The sensor dry-run dialog's \"Commit tick result\" only applied a `SensorResult`'s `cursor`, `dynamic_partitions_requests`, and `run_requests` — `asset_events` (materializations, observations, asset check evaluations) were silently dropped. This wasn't a bug in the commit step itself: `GrapheneTickEvaluation` (the GraphQL type behind `sensorDryRun`) never exposed `asset_events` at all, so the frontend never even received them to commit.\r\n\r\n  The real sensor daemon (`_daemon/sensor.py`, `_evaluate_sensor`) already applies these correctly:\r\n\r\n  ```python\r\n  for asset_event in sensor_runtime_data.asset_events:\r\n      instance.report_runless_asset_event(asset_event)  \r\n```\r\n\r\n  There's no shared \"apply a SensorResult\" helper between the daemon and the GraphQL/UI path — they're two independent, partial implementations of the same thing.\r\n\r\n  Changes\r\n\r\n  - GrapheneTickEvaluation gains an assetEvents: [String!] field, resolved by serializing each event via dagster._serdes.serialize_value. Serializing (rather than reconstructing from primitive params, like the existing reportRunlessAssetEvents mutation does) preserves full metadata and supports AssetCheckEvaluation, neither of which that mutation's primitive-param shape supports.\r\n\r\nNew backend tests in test_sensors.py:\r\n- test_dry_run_with_asset_events — assetEvents round-trips through the dry-run query and deserializes back to the original AssetMaterialization.\r\n- test_report_sensor_tick_asset_events — the new mutation reports the event and it's queryable via instance.fetch_materializations(...) afterward.\r\n\r\nNew frontend tests in SensorDryRunDialog.test.tsx:\r\n- Commits asset events and shows \"Commit tick result\" (not \"Skipped\") for an asset-events-only tick.\r\n- Shows an error and does not persist the cursor when reporting fails (UnauthorizedError).\r\n\r\nChangelog\r\n\r\nSensor dry run \"Commit tick result\" now reports the asset materializations, observations, and asset check evaluations a sensor returns, instead of silently dropping them.\r\n  - New reportSensorTickAssetEvents mutation: deserializes the events the client received from the dry run and reports each one via instance.report_runless_asset_event(...), mirroring the daemon's loop. Same Permissions.REPORT_RUNLESS_ASSET_EVENTS check as the existing runless-event mutations.\r\n  - SensorDryRunDialog.tsx: fetches assetEvents in the dry-run query and reports them in onCommitTickResult (fired by both the plain \"Commit tick result\" button and at the end of \"Apply requests & commit tick result\"). Also fixes the dialog's skip/button-selection logic, which conflated \"should the Skipped tag show\" with \"does the Apply button have anything to apply\" — a tick with only asset events (no run/partition requests) previously rendered as Skipped / \"No runs requested\" and showed the disabled Apply button instead of ",
+          "additions": 1579,
+          "deletions": 22,
+          "changedFiles": 21
+        }
+      ],
+      "upstream": {
+        "fullName": "dagster-io/dagster",
+        "url": "https://github.com/dagster-io/dagster",
+        "stars": 16032
+      }
+    },
+    {
+      "kind": "project",
+      "name": "sentiment-analysis-api",
+      "title": "De API de brinquedo a produção: evoluindo uma API de análise de sentimento",
+      "description": "Como uma API FastAPI de 100 linhas virou um serviço com testes, CI, cache, multi idioma, batch assíncrono, SSE e observabilidade — com números reais de benchmark no final.",
+      "excerpt": "Como uma API FastAPI de 100 linhas virou um serviço com testes, CI, cache, multi idioma, batch assíncrono, SSE e observabilidade — com números reais de benchmark no final.",
+      "content": "# De API de brinquedo a produção: evoluindo uma API de análise de sentimento\n\nComo uma API FastAPI de ~100 linhas virou um serviço com testes, CI, cache, multi-idioma, batch assíncrono, SSE e observabilidade — com números reais de benchmark no final.\n\n## O ponto de partida\n\nO projeto começou como a maioria dos projetos de estudo: uma API FastAPI que expunha o VADER (NLTK) para análise de sentimento, organizada em camadas (`routes` → `services` → `repositories`), com um Dockerfile e um pipeline que rodava `ruff` na `main`. Funcionava. E era isso.\n\nO problema é que \"funciona na minha máquina\" não é um critério de engenharia. Faltava tudo o que separa um exemplo de tutorial de um serviço que você colocaria a assinatura embaixo:\n\n- Zero testes automatizados\n- CI que só rodava em push para a `main`\n- Sem tratamento de erros (qualquer exceção vazava stack trace)\n- `requirements.txt` sem pin de versão — e com um bug: uma linha `routes` listada como dependência do PyPI quebrava `pip install` em ambiente limpo\n- Dockerfile com `COPY ../` (que nem funciona com contexto na raiz) e rodando como root\n\nEste artigo é o caminho de lá até cá.\n\n## Primeira parada: a base (testes, CI, Docker)\n\nAntes de qualquer feature nova, a fundação. A regra que segui: **nada de código novo sem rede de proteção embaixo.**\n\n### Testes em três camadas\n\nA aplicação já tinha a separação `routes` → `services` → `repositories`, então os testes seguiram a mesma fronteira:\n\n- **Repository** (`test_repository.py`): o VADER é determinístico, então testei textos claramente positivos, negativos e neutros verificando os sinais dos scores (`compound`, `pos`, `neg`, `neu`) — sem mocks. Quando a dependência é rápida e determinística, mock é só ruído.\n- **Service** (`test_service.py`): aqui o repository é mockado, porque o que importa é a lógica de negócio — classificação por thresholds (`> 0.05`, `< -0.05`), agregação de estatísticas, fronteira de valores.\n- **Routes** (`test_routes.py`): os endpoints via `TestClient`, cobrindo sucesso e os erros 400 (texto/lista vazia) e 422 (payload acima dos limites).\n\n### CI que roda a cada commit\n\nO pipeline original só rodava na `main` — ou seja, você descobria que quebrou algo *depois* do merge. Ajustei para rodar em qualquer push e PR, com jobs paralelos: lint, format check, mypy e testes com cobertura mínima em matrix de Python 3.11/3.12.\n\n### Docker sem surpresas\n\nDockerfile multi-stage com `python:3.12-slim`, usuário não-root e — detalhe importante — o **léxico do VADER pré-baixado no build**. Sem isso, o primeiro request em produção depende de um download em runtime. Cold start não deveria depender de rede.\n\n```dockerfile\nENV NLTK_DATA=/usr/local/share/nltk_data\nRUN python -c \"import nltk; nltk.download('vader_lexicon', download_dir='/usr/local/share/nltk_data')\"\n```\n\n## A API em si: contrato primeiro\n\nCom a base pronta, o próximo passo foi tratar a API como um **produto com contrato**, não como um script HTTP:\n\n- **Versionamento** (`/v1/...`): dá para evoluir sem quebrar clientes.\n- **OpenAPI rica**: `response_model`, `summary`, `description`, exemplos e tags em todos os endpoints. Schemas de resposta tipados (`AnalyzeResponse`, `SentimentScores`) em vez de dicionários soltos — se o contrato está no tipo, o mypy e o `/docs` trabalham por você.\n- **Validação de payload**: `Field(max_length=10_000)` no texto e `max_length=100` na lista. Uma API pública sem limite de tamanho é um DoS de brinquedo esperando acontecer.\n- **`GET /`** com metadados e **`GET /health`** para liveness probes.\n\n## Features que valem um parágrafo cada\n\n### Multi-idioma: VADER para inglês, LeIA para português\n\nO VADER só entende inglês. Para PT-BR, usei o [LeIA](https://github.com/RafJaa/LeIA) — um fork do VADER adaptado para português. A integração é um dispatcher no repository:\n\n```python\nANALYZERS = {\n    'en': VaderAnalyzer(),\n    'pt': LeiaAnalyzer(),\n}\n\ndef analyze_sentiment(text: str, language: str = 'en') -> dict[str, float]:\n    analyzer = ANALYZERS.get(language)\n    if analyzer is None:\n        raise ValueError(f'Unsupported language: {language}')\n    return analyzer.polarity_scores(text)\n```\n\nCuriosidade que rendeu capítulo de \"lições aprendidas\": o pacote `leia` publicado no PyPI é um **stub vazio** — o projeto real não tem empacotamento. Solução: vendorizei o módulo (arquivo único + léxicos) em `src/vendor/leia/`, excluindo a pasta de lint e mypy. Código de terceiros no meu controle de versão, imutável e auditável.\n\n### Cache: a feature mais barata e mais lucrativa\n\nAnálise de sentimento é CPU-bound pura e **determinística**: mesmo texto, mesmo score, sempre. É o caso de uso perfeito de cache. Implementei um cache in-memory com TTL e eviction LRU, chaveado por `(language, text)`:\n\n```python\ndef analyze_sentiment(self, text: str, language: str = 'en') -> dict[str, float]:\n    if self._cache is not None:\n        cached = self._cache.get(text, language)\n        if cached is not None:\n            return cached\n    result = analyze_sentiment(text, language)\n    if self._cache is not None:\n        self._cache.set(text, language, result)\n    return result\n```\n\nCarga com repetição de textos (reviews, redes sociais, monitoramento) tem taxa de acerto alta — e os números no final mostram o retorno.\n\n### Batch assíncrono com job ID\n\nLote grande não deveria segurar a conexão. `POST /v1/analyze_batch` responde `202 Accepted` com um job ID na hora; o processamento roda em background e o cliente consulta `GET /v1/results/{job_id}` até `completed` (ou `failed`).\n\n### Streaming com SSE\n\nPara quem quer resultado progressivo, `POST /v1/analyze_stream` responde com Server-Sent Events: um evento `data` por texto analisado, terminando com `event: done`. Simples, funciona com um `curl -N` e não precisa de WebSocket.\n\n## Observabilidade: você não pode consertar o que não vê\n\n- **`GET /metrics` em formato Prometheus**: contadores de HTTP por método/rota/status, histograma de latência, distribuição de sentimentos por idioma, hits/misses do cache, jobs por status.\n- **Structured logging (structlog)** em JSON, com `request_id` gerado por request (ou propagado do cliente via `X-Request-ID`). Quando algo quebra, você filtra por um ID e vê a linha exata.\n- **Header `X-Process-Time-Ms`** em toda resposta.\n- **Sentry opcional** — seta `SENTRY_DSN` e pronto, sem tocar em código.\n- **Rate limiting** por IP (429 + `Retry-After`) e headers de segurança.\n\nTudo configurável por variáveis de ambiente via `pydantic-settings`, com um `make dev` que sobe com reload para o dia a dia.\n\n## Os números (a parte que interessa)\n\nMetodologia completa no repositório (`docs/benchmarks/`), mas o resumo: locust, 20 usuários virtuais, 30s por cenário, 1 worker, texts curtos:\n\n| Cenário | req/s | p50 | p95 | p99 |\n| --- | --- | --- | --- | --- |\n| Cache hit (EN) | **971** | 18ms | 30ms | 53ms |\n| Cache miss (EN, VADER) | 568 | 33ms | 60ms | 93ms |\n| Cache miss (PT, LeIA) | 458 | 41ms | 95ms | 140ms |\n\n**+71% de vazão e -45% de latência no p50** só por não recalcular o que já foi calculado. Zero falhas em todos os cenários. O LeIA é ~20% mais lento que o VADER (léxico maior + normalização de acentuação), mas está longe de ser gargalo.\n\n## Lições que o tutorial não conta\n\n1. **O PyPI mente às vezes.** Verifique o que você instala — o `leia` de lá era um arquivo vazio. Vendorizar código pequeno e estável é opção legítima.\n2. **Cobertura de código precisa de contexto.** O código vendored derrubava a métrica para 33%. Excluir `src/vendor` do coverage reportou o número certo: **98% de cobertura nas 412 linhas que são minhas**.\n3. **Estado in-memory tem dono.** Com `WORKERS > 1`, cada processo tem seu cache e job store. Para este caso (cache é só otimização, job store é efêmero) é aceitável — mas é uma decisão consciente, documentada, não um acidente. Se precisar de consistência global, o próximo passo é Redis.\n4. **`app.mount('/metrics')` no FastAPI responde 307** para `/metrics` (redirect para `/metrics/`). O Prometheus não segue redirect. A solução foi expor como rota normal com `generate_latest()`.\n5. **Commits pequenos e verdes.** Cada feature foi um commit com lint, types e testes passando. O `git log` virou a narrativa do artigo.\n\n## Estado final\n\n- 72 testes, 98% de cobertura, threshold de 90% bloqueando no CI\n- ruff (lint + format) e mypy limpos, rodando a cada push\n- CI em matrix de Python, build de Docker validada em todo push\n- API versionada, documentada, com cache, batch, stream, rate limit e métricas\n- Benchmark reproduzível com `make benchmark`",
+      "url": "https://github.com/ntsation/sentiment-analysis-api",
+      "homepage": null,
+      "language": "Python",
+      "topics": [
+        "fastapi",
+        "nltk",
+        "python"
+      ],
+      "stars": 0,
+      "updatedAt": "2024-12-24T18:29:52Z",
+      "readingTime": 2,
+      "thumbnail": null,
+      "prs": null,
+      "upstream": null
+    }
+  ]
+}
