@@ -18,9 +18,8 @@
       "homepage": null,
       "language": "Python",
       "topics": [
-        "fastapi",
-        "nltk",
-        "python"
+        "FastAPI",
+        "NLTK"
       ],
       "stars": 0,
       "updatedAt": "2026-08-20T15:11:49Z",
@@ -40,11 +39,11 @@
       "homepage": "https://dagster.io",
       "language": "Python",
       "topics": [
-        "analytics",
-        "dagster",
-        "data-engineering",
-        "data-integration",
-        "data-orchestrator",
+        "Analytics",
+        "Dagster",
+        "Data-engineering",
+        "Data-integration",
+        "Data-orchestrator",
         "data-pipelines",
         "data-science",
         "etl",
