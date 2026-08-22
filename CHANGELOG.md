@@ -1,3 +1,10 @@
+## [1.3.1](https://github.com/ntsation/portfolio/compare/v1.3.0...v1.3.1) (2026-08-22)
+
+
+### Bug Fixes
+
+* **seo:** drop the site-name suffix from per-page titles ([b577e3e](https://github.com/ntsation/portfolio/commit/b577e3ef31f19461350d9f7932501aa4d1e3c208))
+
 # [1.3.0](https://github.com/ntsation/portfolio/compare/v1.2.0...v1.3.0) (2026-08-22)
 
 
