@@ -6,6 +6,10 @@ on:
     paths-ignore:
       - '**.md'
       - 'docs/**'
+  schedule:
+    - cron: "0 11 * * *" # 08:00 BRT (UTC-3) — safety net in case a dispatch is missed
+  repository_dispatch:
+    types: [rebuild]
   workflow_dispatch:
 
 concurrency:
