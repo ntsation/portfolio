@@ -1,6 +1,7 @@
 {
   "username": "ntsation",
   "exclude": [
+    "portfolio",
     "barber-crm",
     "bndes-data-pipeline",
     "serverless-chatbot-aws",
