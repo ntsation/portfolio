@@ -1,3 +1,10 @@
+# [1.3.0](https://github.com/ntsation/portfolio/compare/v1.2.0...v1.3.0) (2026-08-22)
+
+
+### Features
+
+* **seo:** per-page Open Graph previews via BrowserRouter + prerendering ([81900f1](https://github.com/ntsation/portfolio/commit/81900f157c66172954727f63cc77d3d53e5b8388))
+
 # [1.2.0](https://github.com/ntsation/portfolio/compare/v1.1.1...v1.2.0) (2026-08-22)
 
 
