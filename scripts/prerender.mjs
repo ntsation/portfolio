@@ -36,7 +36,7 @@ function escapeHtml(str) {
 }
 
 function renderPage({ routePath, title, description, type = 'website' }) {
-  const fullTitle = title ? `${title} — ${siteName}` : siteName
+  const fullTitle = title || siteName
   const url = `${base}${routePath.replace(/^\//, '')}`
   const image = `${base}og-image.png`
 
