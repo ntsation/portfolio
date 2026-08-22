@@ -1,3 +1,10 @@
+# [1.4.0](https://github.com/ntsation/portfolio/compare/v1.3.1...v1.4.0) (2026-08-22)
+
+
+### Features
+
+* **ci:** rebuild pages on a daily schedule and via repository_dispatch ([47ab9c7](https://github.com/ntsation/portfolio/commit/47ab9c7f6f5dad54c992f8917b16bf09d3962a62))
+
 ## [1.3.1](https://github.com/ntsation/portfolio/compare/v1.3.0...v1.3.1) (2026-08-22)
 
 
