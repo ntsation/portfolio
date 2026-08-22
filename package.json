@@ -8,7 +8,7 @@
     "predev": "node scripts/fetch-readmes.mjs --if-missing",
     "dev": "vite",
     "prebuild": "node scripts/fetch-readmes.mjs",
-    "build": "tsc -b && vite build",
+    "build": "tsc -b && vite build && node scripts/prerender.mjs",
     "lint": "oxlint",
     "preview": "vite preview"
   },
