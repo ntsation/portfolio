@@ -1,3 +1,10 @@
+## [1.1.1](https://github.com/ntsation/portfolio/compare/v1.1.0...v1.1.1) (2026-08-22)
+
+
+### Bug Fixes
+
+* **data:** exclude portfolio repo from its own project listing ([065aa30](https://github.com/ntsation/portfolio/commit/065aa30a2ed32ed70c9ce9e3cc1e631e886ef4af))
+
 # [1.1.0](https://github.com/ntsation/portfolio/compare/v1.0.0...v1.1.0) (2026-08-22)
 
 
