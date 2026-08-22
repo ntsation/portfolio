@@ -1,0 +1,37 @@
+version: 2
+
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: daily
+      time: "08:00"
+      timezone: America/Sao_Paulo
+    commit-message:
+      prefix: "chore(deps)"
+    labels:
+      - dependencies
+
+  - package-ecosystem: docker
+    directory: /
+    schedule:
+      interval: daily
+      time: "08:00"
+      timezone: America/Sao_Paulo
+    commit-message:
+      prefix: "chore(deps)"
+    labels:
+      - dependencies
+      - docker
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: daily
+      time: "08:00"
+      timezone: America/Sao_Paulo
+    commit-message:
+      prefix: "chore(ci)"
+    labels:
+      - dependencies
+      - github-actions
