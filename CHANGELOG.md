@@ -1,3 +1,10 @@
+# [1.5.0](https://github.com/ntsation/portfolio/compare/v1.4.0...v1.5.0) (2026-08-26)
+
+
+### Features
+
+* **ci:** scaffold Deploy workflow for future Oracle instance rollout ([b508dd7](https://github.com/ntsation/portfolio/commit/b508dd74edf5a4c87a9d536cc837299052461ce3))
+
 # [1.4.0](https://github.com/ntsation/portfolio/compare/v1.3.1...v1.4.0) (2026-08-22)
 
 
