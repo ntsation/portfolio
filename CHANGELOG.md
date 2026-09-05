@@ -1,3 +1,10 @@
+## [1.6.1](https://github.com/ntsation/portfolio/compare/v1.6.0...v1.6.1) (2026-09-05)
+
+
+### Bug Fixes
+
+* prune stale image tags left behind on deploy ([af12b0b](https://github.com/ntsation/portfolio/commit/af12b0b56b7ecd87702ac8d208b3eb8b04f520bf))
+
 # [1.6.0](https://github.com/ntsation/portfolio/compare/v1.5.0...v1.6.0) (2026-09-04)
 
 
