@@ -1,5 +1,6 @@
 {
   "username": "ntsation",
+  "orgs": ["thentsation"],
   "exclude": [
     "portfolio",
     "barber-crm",
@@ -8,7 +9,6 @@
     "sales-prediction-project",
     "personal-data-pseudonymizer",
     "model-multilingual-translator",
-    "gemini-chatbot-app",
     "consumer-purchase-analysis",
     "mlops-iris-classifier",
     "iris-analysis-ml",

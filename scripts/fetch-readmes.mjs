@@ -286,9 +286,10 @@ async function fetchArticle(owner, repo, lang) {
 }
 
 async function fetchProject(meta, lang) {
-  const { md, source } = await fetchArticle(config.username, meta.name, lang)
+  const owner = meta.owner.login
+  const { md, source } = await fetchArticle(owner, meta.name, lang)
   const branch = meta.default_branch || 'main'
-  const rawContent = rewriteImages(md, config.username, meta.name, branch)
+  const rawContent = rewriteImages(md, owner, meta.name, branch)
   const text = mdToText(rawContent)
   const words = text.split(/\s+/).filter(Boolean).length
   const images = collectImages(rawContent).filter((u) => !isBadge(u))
@@ -325,14 +326,17 @@ async function fetchProject(meta, lang) {
 
 async function listRepos() {
   const all = []
-  let page = 1
-  while (true) {
-    const batch = await ghJson(
-      `/users/${config.username}/repos?per_page=100&type=owner&sort=pushed&page=${page}`,
-    )
-    all.push(...batch)
-    if (batch.length < 100) break
-    page++
+  for (const path of [
+    `/users/${config.username}/repos?per_page=100&type=owner&sort=pushed`,
+    ...(config.orgs ?? []).map((org) => `/orgs/${org}/repos?per_page=100&type=public&sort=pushed`),
+  ]) {
+    let page = 1
+    while (true) {
+      const batch = await ghJson(`${path}&page=${page}`)
+      all.push(...batch)
+      if (batch.length < 100) break
+      page++
+    }
   }
   return all
 }
@@ -360,7 +364,7 @@ for (const meta of allRepos) {
   }
   try {
     if (meta.fork) {
-      const full = await ghJson(`/repos/${config.username}/${meta.name}`)
+      const full = await ghJson(`/repos/${meta.owner.login}/${meta.name}`)
       if (!full.parent) continue
       const entry = await fetchOpenSource(full)
       if (!entry) {
