@@ -4,14 +4,6 @@
   "exclude": [
     "portfolio",
     "barber-crm",
-    "bndes-data-pipeline",
-    "serverless-chatbot-aws",
-    "sales-prediction-project",
-    "personal-data-pseudonymizer",
-    "model-multilingual-translator",
-    "consumer-purchase-analysis",
-    "mlops-iris-classifier",
-    "iris-analysis-ml",
-    "iris-classification-bentoml"
+    "consumer-purchase-analysis"
   ]
 }
