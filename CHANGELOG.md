@@ -1,3 +1,10 @@
+# [1.7.0](https://github.com/ntsation/portfolio/compare/v1.6.0...v1.7.0) (2026-09-26)
+
+
+### Features
+
+* **repos:** include new thentsation org articles ([4826696](https://github.com/ntsation/portfolio/commit/48266961a915773d11b029888b6e4914928f38bb))
+
 # [1.6.0](https://github.com/ntsation/portfolio/compare/v1.5.0...v1.6.0) (2026-09-09)
 
 
